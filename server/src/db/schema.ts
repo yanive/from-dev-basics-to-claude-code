@@ -9,6 +9,7 @@ import {
   serial,
   uuid,
   unique,
+  numeric,
 } from 'drizzle-orm/pg-core';
 
 export const levels = pgTable('levels', {
@@ -141,5 +142,37 @@ export const aiOnboardingLog = pgTable('ai_onboarding_log', {
   inputTokens: integer('input_tokens').notNull(),
   outputTokens: integer('output_tokens').notNull(),
   model: varchar('model', { length: 100 }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const triageRuns = pgTable('triage_runs', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  startedAt: timestamp('started_at', { withTimezone: true }).notNull(),
+  finishedAt: timestamp('finished_at', { withTimezone: true }).notNull(),
+  issuesProcessed: integer('issues_processed').notNull().default(0),
+  autoFixed: integer('auto_fixed').notNull().default(0),
+  needsReview: integer('needs_review').notNull().default(0),
+  notABug: integer('not_a_bug').notNull().default(0),
+  errors: integer('errors').notNull().default(0),
+  totalCostUsd: numeric('total_cost_usd').notNull().default('0'),
+  dryRun: boolean('dry_run').notNull().default(false),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const triageIssues = pgTable('triage_issues', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  runId: uuid('run_id').notNull().references(() => triageRuns.id, { onDelete: 'cascade' }),
+  issueNumber: integer('issue_number').notNull(),
+  issueUrl: text('issue_url').notNull(),
+  title: text('title').notNull(),
+  decision: varchar('decision', { length: 30 }).notNull(),
+  confidence: varchar('confidence', { length: 10 }).notNull(),
+  explanation: text('explanation').notNull(),
+  reporterEmail: varchar('reporter_email', { length: 255 }),
+  reporterName: varchar('reporter_name', { length: 255 }),
+  prNumber: integer('pr_number'),
+  prUrl: text('pr_url'),
+  changedFiles: jsonb('changed_files'),
+  costUsd: numeric('cost_usd').notNull().default('0'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });

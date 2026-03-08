@@ -28,6 +28,7 @@ const DEFAULT_CONFIG: AdminNotificationConfig = {
   events: {
     student_joined: { enabled: true, mode: 'digest' },
     bug_report: { enabled: true, mode: 'immediate' },
+    triage_run: { enabled: true, mode: 'immediate' },
   },
 };
 
@@ -112,6 +113,11 @@ function buildEmail(eventType: string, payload: Record<string, unknown>): { subj
           payload.reportedBy as string,
         ),
       };
+    case 'triage_run':
+      return {
+        subject: payload.subject as string,
+        html: payload.html as string,
+      };
     default:
       return {
         subject: `Admin event: ${eventType}`,
@@ -188,6 +194,8 @@ function summarize(eventType: string, payload: Record<string, unknown>): string 
       return `${payload.displayName}${payload.email ? ` (${payload.email})` : ''}`;
     case 'bug_report':
       return `${payload.title} — reported by ${payload.reportedBy}`;
+    case 'triage_run':
+      return `${payload.issueCount} issue${(payload.issueCount as number) === 1 ? '' : 's'}: ${payload.autoFixed} fixed, ${payload.needsReview} review, ${payload.notABug} not-a-bug`;
     default:
       return JSON.stringify(payload).slice(0, 100);
   }

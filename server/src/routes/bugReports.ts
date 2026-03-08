@@ -74,12 +74,12 @@ async function verifyTurnstile(token: string, ip: string | undefined): Promise<b
   return data.success;
 }
 
-function formatIssueBody(data: z.infer<typeof bugReportSchema>, user: { id: string; username: string }): string {
+function formatIssueBody(data: z.infer<typeof bugReportSchema>, user: { id: string; username: string; email?: string | null }): string {
   const lines: string[] = [];
 
   lines.push('## Student Bug Report\n');
   lines.push(`**Lesson:** ${data.lessonId}${data.lessonTitle ? ` — ${data.lessonTitle}` : ''} (Section ${data.sectionIndex + 1}/${data.totalSections})`);
-  lines.push(`**Reported by:** ${user.username} (ID: ${user.id})`);
+  lines.push(`**Reported by:** ${user.username}${user.email ? ` (${user.email})` : ''} (ID: ${user.id})`);
   lines.push(`**Date:** ${new Date().toISOString()}\n`);
 
   lines.push('### Description');
@@ -165,6 +165,7 @@ bugReportsRouter.post('/', requireAuth, blockIfImpersonating, asyncHandler(async
   const body = formatIssueBody(parsed.data, {
     id: user.id,
     username: user.username,
+    email: user.email,
   });
 
   const title = `[Student Report] Lesson ${parsed.data.lessonId}: ${parsed.data.description.slice(0, 80)}`;

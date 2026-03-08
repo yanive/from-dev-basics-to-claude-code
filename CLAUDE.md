@@ -60,7 +60,7 @@ An interactive web app teaching non-technical people how to use the terminal. 10
 - `src/components/dashboard/DashboardSidebar.tsx` — extracted desktop sidebar with collapse toggle and nav icons
 - `src/components/dashboard/DashboardProfile.tsx` — profile page with image upload, email, display name editing
 - `server/src/index.ts` — Express entry point
-- `server/src/db/schema.ts` — Drizzle table definitions (levels, lessons, users with email/profileImage/paletteId, progress, site_settings, palettes, ai_onboarding_plans, ai_onboarding_log)
+- `server/src/db/schema.ts` — Drizzle table definitions (levels, lessons, users with email/profileImage/paletteId, progress, site_settings, palettes, ai_onboarding_plans, ai_onboarding_log, triage_runs, triage_issues)
 - `server/src/routes/auth.ts` — auth endpoints including profile image upload (base64), email update, palette selection
 - `server/src/routes/admin.ts` — admin CRUD for levels, lessons, settings, palettes (including AI generation), onboarding stats, provider API test endpoint
 - `server/src/lib/aiClient.ts` — shared provider interface for Anthropic/Gemini calls + usage normalization
@@ -76,9 +76,23 @@ An interactive web app teaching non-technical people how to use the terminal. 10
 - `server/src/db/seed.ts` — seeds DB from lesson JSONs
 - `server/src/lib/achievements.ts` — achievement registry (16 achievements)
 - `server/src/routes/progress.ts` — progress, stats, achievements, smart continue endpoints
+- `server/src/routes/triage.ts` — triage agent API: POST run results (PAT auth), GET runs/stats (admin JWT)
 - `server/drizzle/` — committed migration SQL files
+- `agent/src/index.ts` — triage agent entry point (single poll cycle, then exit)
+- `agent/src/config.ts` — agent config (auto-detects GitHub token + repo from local machine)
+- `agent/src/claudeAgent.ts` — Claude Code Agent SDK: investigate (read-only) + fix (write+git)
+- `agent/src/github.ts` — agent GitHub client (Octokit: issues, labels, comments, draft PRs)
+- `agent/src/reportResults.ts` — POSTs triage results to server API
+- `agent/src/issueParser.ts` — parses structured bug report markdown from GitHub issues
+- `specs/TRIAGE_AGENT_SPEC.md` — triage agent feature spec
 - `specs/DEPLOYMENT_SPEC.md` — full deployment architecture
 - `specs/USER_DASHBOARD_SPEC.md` — user dashboard spec (complete)
+- `specs/TRIAGE_AGENT_SPEC.md` — local triage agent spec
+- `agent/src/index.ts` — triage agent entry point (single poll cycle)
+- `agent/src/claudeAgent.ts` — Claude Code Agent SDK integration (investigate + fix)
+- `agent/src/github.ts` — Octokit wrapper for issues, labels, comments, PRs
+- `agent/src/issueParser.ts` — parses structured bug report markdown from GitHub issues
+- `agent/com.zero2claude.triage-agent.plist` — macOS launchd schedule (hourly)
 
 ## Dev Commands
 ```bash
@@ -92,6 +106,11 @@ npm run build     # Compile TypeScript
 npm test          # Run backend tests (Vitest + supertest)
 npm run db:migrate  # Apply migrations
 npm run db:seed     # Seed database
+
+cd agent
+npm run build     # Compile triage agent
+npm run start     # Run one triage cycle
+npm run dev       # Run with tsx (no build needed)
 ```
 
 ## Deployment
@@ -118,3 +137,4 @@ npm run db:seed     # Seed database
 - Admin onboarding page includes provider test actions that call `POST /api/admin/onboarding/test-provider` before enabling for users.
 - First-login AI onboarding modal uses `localStorage` key `ai-onboarding-modal-dismissed` to show once per user.
 - Backend async route handlers must use `asyncHandler` wrapper (Express 4 doesn't catch async throws). All auth, palette, and onboarding routes are wrapped.
+- **Triage agent** (`agent/`): Local Node.js agent that polls GitHub issues hourly, investigates bug reports by spawning Claude Code instances (via `@anthropic-ai/claude-code` Agent SDK), creates fix branches + draft PRs for valid bugs, comments/closes invalid ones. POSTs results to server which handles all email notifications (reporter + admin digest). Runs on macOS via launchd plist. Zero-config: auto-detects GitHub token from `gh auth token`, repo from git remote, Claude auth from local installation. `DRY_RUN=true` for safe testing. Bug report issue body includes reporter email (private repo).

@@ -111,6 +111,77 @@ ${mutedText(`Sent at ${new Date().toUTCString()}`)}
   `);
 }
 
+// ---------------------------------------------------------------------------
+// Triage agent notification templates
+// ---------------------------------------------------------------------------
+
+export function triageFixCreatedTemplate(displayName: string, issueNumber: number, prUrl: string): string {
+  return layout(`
+${heading('Your bug report has a fix')}
+${paragraph(`Hi ${displayName}, we've investigated your bug report (<strong>#${issueNumber}</strong>) and created a fix. It will be reviewed and integrated shortly.`)}
+${ctaButton('View Fix', prUrl)}
+${mutedText("This is an automated notification from the triage agent.")}
+  `);
+}
+
+export function triageNeedsReviewTemplate(displayName: string, issueNumber: number): string {
+  return layout(`
+${heading('Bug report confirmed')}
+${paragraph(`Hi ${displayName}, we've confirmed the issue in your bug report (<strong>#${issueNumber}</strong>) and flagged it for manual review.`)}
+${paragraph("A team member will look into it. No action needed on your end.")}
+${mutedText("This is an automated notification from the triage agent.")}
+  `);
+}
+
+export function triageNotABugTemplate(displayName: string, issueNumber: number, explanation: string): string {
+  return layout(`
+${heading('Bug report reviewed')}
+${paragraph(`Hi ${displayName}, we investigated your bug report (<strong>#${issueNumber}</strong>) and determined this isn't a bug.`)}
+${paragraph(`<strong>Details:</strong> ${explanation}`)}
+${mutedText("If you believe this is incorrect, feel free to open a new report with additional details.")}
+  `);
+}
+
+export interface TriageDigestIssue {
+  issueNumber: number;
+  title: string;
+  decision: string;
+  confidence: string;
+  prUrl: string | null;
+}
+
+export function triageAdminDigestTemplate(issues: TriageDigestIssue[], totals: { autoFixed: number; needsReview: number; notABug: number; errors: number; totalCost: string }): string {
+  const decisionBadge = (d: string) => {
+    const colors: Record<string, string> = { 'auto-fixed': '#22c55e', 'needs-review': '#eab308', 'not-a-bug': '#6b7280' };
+    const color = colors[d] || STYLES.muted;
+    return `<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;color:#fff;background:${color};">${d}</span>`;
+  };
+
+  const rows = issues.map(i => {
+    const prLink = i.prUrl ? ` — <a href="${i.prUrl}" style="color:${STYLES.accent};">PR</a>` : '';
+    return `<tr>
+      <td style="padding:6px 8px;border-bottom:1px solid ${STYLES.border};font-size:13px;color:${STYLES.text};font-family:${STYLES.fontStack};">#${i.issueNumber}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid ${STYLES.border};font-size:13px;color:${STYLES.text};font-family:${STYLES.fontStack};">${i.title.slice(0, 60)}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid ${STYLES.border};font-size:13px;">${decisionBadge(i.decision)}${prLink}</td>
+    </tr>`;
+  }).join('');
+
+  return layout(`
+${heading('Triage Agent Run Complete')}
+${paragraph(`<strong>${issues.length}</strong> issue${issues.length === 1 ? '' : 's'} processed — ${totals.autoFixed} auto-fixed, ${totals.needsReview} needs review, ${totals.notABug} not a bug${totals.errors ? `, ${totals.errors} error${totals.errors === 1 ? '' : 's'}` : ''}`)}
+${totals.totalCost !== '0' ? paragraph(`Total cost: <strong>$${totals.totalCost}</strong>`) : ''}
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;">
+<tr>
+  <th style="padding:6px 8px;text-align:left;font-size:12px;color:${STYLES.muted};border-bottom:1px solid ${STYLES.border};font-family:${STYLES.fontStack};">Issue</th>
+  <th style="padding:6px 8px;text-align:left;font-size:12px;color:${STYLES.muted};border-bottom:1px solid ${STYLES.border};font-family:${STYLES.fontStack};">Title</th>
+  <th style="padding:6px 8px;text-align:left;font-size:12px;color:${STYLES.muted};border-bottom:1px solid ${STYLES.border};font-family:${STYLES.fontStack};">Decision</th>
+</tr>
+${rows}
+</table>
+${mutedText(`Digest generated at ${new Date().toUTCString()}`)}
+  `);
+}
+
 export interface DigestEvent {
   type: string;
   count: number;
