@@ -1,4 +1,4 @@
-const COMMAND_DESCRIPTIONS: Record<string, string> = {
+export const COMMAND_DESCRIPTIONS: Record<string, string> = {
   'pwd': 'location',
   'ls': 'list files',
   'ls -l': 'detailed list',

@@ -14,6 +14,8 @@ import { TerminalProvider, useTerminal } from '../../core/terminal/TerminalConte
 import { pushCompletion, pushSkip } from '../../services/progressSync';
 import { useAchievements } from '../../contexts/AchievementContext';
 import { apiFetch } from '../../services/api';
+import { CheatSheet } from './CheatSheet';
+import { COMMAND_DESCRIPTIONS } from '../interactive/terminal/CommandReferenceBar';
 
 /** Renders BugReportModal inside TerminalProvider scope so it can access terminal context */
 function TerminalBugReport({
@@ -232,6 +234,12 @@ export function LessonView() {
     );
   }
 
+  // Build cheat sheet entries: prefer explicit cheatSheet, fallback to commandsIntroduced
+  const cheatSheetEntries = les.cheatSheet
+    ?? (les.commandsIntroduced || [])
+      .map((cmd) => ({ command: cmd, description: COMMAND_DESCRIPTIONS[cmd] || '' }))
+      .filter((e) => e.description);
+
   // Active lesson
   const isTerminalLesson = les.type === 'terminal';
   const sectionContent = (
@@ -299,6 +307,8 @@ export function LessonView() {
           </div>
         </div>
       )}
+
+      {cheatSheetEntries.length > 0 && <CheatSheet entries={cheatSheetEntries} />}
 
       {isTerminalLesson ? (
         <TerminalProvider key={lessonId} initialFs={les.initialFs} initialDir={les.initialDir} curlMocks={les.curlMocks}>
