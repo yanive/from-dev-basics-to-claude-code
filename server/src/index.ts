@@ -46,13 +46,13 @@ app.use('/api/levels', levelsRouter);
 app.use('/api/lessons', lessonsRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/progress', progressRouter);
+app.use('/api/admin/triage', triageRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/bug-reports', bugReportsRouter);
 app.use('/api/email', emailRouter);
 app.use('/api/palettes', palettesRouter);
 app.use('/api/onboarding', onboardingRouter);
 app.use('/api/cron', cronRouter);
-app.use('/api/admin/triage', triageRouter);
 
 // Error handler (must be last)
 app.use(errorHandler);
