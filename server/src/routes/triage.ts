@@ -3,7 +3,6 @@ import { z } from 'zod';
 import { desc, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { triageRuns, triageIssues } from '../db/schema.js';
-import { env } from '../lib/env.js';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';
 import { AppError, asyncHandler } from '../middleware/errorHandler.js';
 import { sendAndLog } from '../lib/email.js';
@@ -47,7 +46,7 @@ const postRunSchema = z.object({
 });
 
 function requireGitHubPAT(req: { headers: { authorization?: string } }, _res: unknown, next: () => void) {
-  const pat = env.GITHUB_PAT;
+  const pat = process.env.GITHUB_PAT;
   if (!pat) throw new AppError(500, 'Server GITHUB_PAT not configured');
 
   const header = req.headers.authorization;
