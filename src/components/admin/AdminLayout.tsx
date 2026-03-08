@@ -17,6 +17,7 @@ const TOOLS_NAV = [
   { to: '/admin/analytics', label: 'Analytics', end: false },
   { to: '/admin/onboarding', label: 'AI Onboarding', end: true },
   { to: '/admin/notifications', label: 'Notifications', end: true },
+  { to: '/admin/triage', label: 'Triage Agent', end: true },
 ];
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) => `

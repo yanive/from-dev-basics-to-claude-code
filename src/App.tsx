@@ -25,6 +25,7 @@ import { AdminAnalytics } from './components/admin/AdminAnalytics';
 import { AdminEmailManager } from './components/admin/AdminEmailManager';
 import { AdminOnboardingStats } from './components/admin/AdminOnboardingStats';
 import { AdminNotifications } from './components/admin/AdminNotifications';
+import { AdminTriage } from './components/admin/AdminTriage';
 import { AIOnboarding } from './components/onboarding/AIOnboarding';
 import { DashboardGuard } from './components/dashboard/DashboardGuard';
 import { DashboardLayout } from './components/dashboard/DashboardLayout';
@@ -84,6 +85,7 @@ function App() {
             <Route path="analytics" element={<AdminAnalytics />} />
             <Route path="onboarding" element={<AdminOnboardingStats />} />
             <Route path="notifications" element={<AdminNotifications />} />
+            <Route path="triage" element={<AdminTriage />} />
           </Route>
         </Route>
       </Routes>
