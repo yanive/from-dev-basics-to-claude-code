@@ -15,6 +15,14 @@ dist-ssr
 # Environment
 .env
 server/.env
+agent/.env
+
+# Separate GitHub Pages repos
+zero2claude-landing/
+zero2claude-agent/
+
+# Agent logs
+agent/logs/
 
 # Editor directories and files
 .vscode/*
