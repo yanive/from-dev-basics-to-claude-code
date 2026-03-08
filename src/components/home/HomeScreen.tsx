@@ -10,6 +10,7 @@ import { WelcomeOverlay, useOnboardingSeen } from './WelcomeOverlay';
 import { LevelAssessment } from './LevelAssessment';
 import { LEVEL_ASSESSMENTS } from '../../data/assessments';
 import { useOnboardingPlan } from '../../hooks/useOnboardingPlan';
+import { COMMAND_DESCRIPTIONS } from '../interactive/terminal/CommandReferenceBar';
 
 const AI_ONBOARDING_MODAL_KEY = 'ai-onboarding-modal-dismissed';
 
@@ -119,6 +120,7 @@ export function HomeScreen() {
   });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [testOutLevel, setTestOutLevel] = useState<number | null>(null);
+  const [cheatSheetLevel, setCheatSheetLevel] = useState<number | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const { seen: onboardingSeen, markSeen: markOnboardingSeen } = useOnboardingSeen();
   const [showWelcome, setShowWelcome] = useState(!onboardingSeen && completedLessons.length === 0);
@@ -495,14 +497,29 @@ export function HomeScreen() {
                   </svg>
                 </div>
 
-                {/* Test Out button — only for not-started levels with assessment data */}
-                {isNotStarted && LEVEL_ASSESSMENTS.some(a => a.levelId === levelMeta.id) && (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setTestOutLevel(levelMeta.id); }}
-                    className="mb-2 text-[11px] font-mono text-purple hover:underline"
-                  >
-                    Already know this? Test out &rarr;
-                  </button>
+                {/* Test Out + Cheat Sheet buttons */}
+                {(isNotStarted && LEVEL_ASSESSMENTS.some(a => a.levelId === levelMeta.id) || levelData.lessons.some(l => l.commandsIntroduced?.length)) && (
+                  <div className="flex items-center gap-3 mb-2">
+                    {isNotStarted && LEVEL_ASSESSMENTS.some(a => a.levelId === levelMeta.id) && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setTestOutLevel(levelMeta.id); }}
+                        className="text-[11px] font-mono text-purple hover:underline"
+                      >
+                        Already know this? Test out &rarr;
+                      </button>
+                    )}
+                    {levelData.lessons.some(l => l.commandsIntroduced?.length) && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setCheatSheetLevel(levelMeta.id); }}
+                        className="text-[11px] font-mono text-text-muted hover:text-purple hover:underline flex items-center gap-1 transition-colors"
+                      >
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                        Cheat sheet
+                      </button>
+                    )}
+                  </div>
                 )}
 
                 {/* Progress bar */}
@@ -702,6 +719,63 @@ export function HomeScreen() {
       {testOutLevel !== null && (
         <LevelAssessment levelId={testOutLevel} onClose={() => setTestOutLevel(null)} />
       )}
+
+      {/* Cheat Sheet modal */}
+      {cheatSheetLevel !== null && (() => {
+        const levelData = levels.find(l => l.id === cheatSheetLevel);
+        if (!levelData) return null;
+        const levelTitle = LEVELS.find(l => l.id === cheatSheetLevel)?.title ?? '';
+        // Collect unique commands across all lessons in this level
+        const seen = new Set<string>();
+        const entries: Array<{ command: string; description: string }> = [];
+        for (const lesson of levelData.lessons) {
+          for (const cmd of lesson.commandsIntroduced || []) {
+            if (!seen.has(cmd) && COMMAND_DESCRIPTIONS[cmd]) {
+              seen.add(cmd);
+              entries.push({ command: cmd, description: COMMAND_DESCRIPTIONS[cmd] });
+            }
+          }
+        }
+        if (entries.length === 0) return null;
+        return (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-bg-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Level cheat sheet"
+            onClick={() => setCheatSheetLevel(null)}
+          >
+            <div
+              className="bg-bg-card border border-border rounded-2xl max-w-md w-[90vw] max-h-[80vh] flex flex-col animate-pop-in"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between px-5 py-4 border-b border-border flex-shrink-0">
+                <div>
+                  <h2 className="text-base font-bold font-mono text-text-primary">Cheat Sheet</h2>
+                  <p className="text-[11px] text-text-muted mt-0.5">{levelTitle}</p>
+                </div>
+                <button
+                  onClick={() => setCheatSheetLevel(null)}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-elevated transition-colors"
+                  aria-label="Close cheat sheet"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="overflow-y-auto p-4 space-y-1">
+                {entries.map((entry) => (
+                  <div key={entry.command} className="flex items-baseline gap-3 px-3 py-2 rounded-lg hover:bg-bg-elevated transition-colors">
+                    <code className="text-[13px] font-mono font-semibold text-purple flex-shrink-0">{entry.command}</code>
+                    <span className="text-[12px] text-text-muted leading-tight">{entry.description}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
