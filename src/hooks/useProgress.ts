@@ -28,6 +28,14 @@ export function useProgress() {
     return progressTracker.getLevelCompletedCount(level);
   }, []);
 
+  const markLessonSkipped = useCallback((lessonId: string) => {
+    progressTracker.markLessonSkipped(lessonId);
+  }, []);
+
+  const isLessonSkipped = useCallback((lessonId: string) => {
+    return progressTracker.isLessonSkipped(lessonId);
+  }, []);
+
   const reset = useCallback(() => {
     progressTracker.reset();
   }, []);
@@ -39,17 +47,21 @@ export function useProgress() {
   return {
     ...state,
     markLessonComplete,
+    markLessonSkipped,
     setCurrentLesson,
     setCurrentSection,
     isLessonComplete,
+    isLessonSkipped,
     getLevelCompletedCount,
     getReviewLessons,
     reset,
   } as ProgressState & {
     markLessonComplete: (lessonId: string, level: number) => void;
+    markLessonSkipped: (lessonId: string) => void;
     setCurrentLesson: (lessonId: string, sectionIndex?: number) => void;
     setCurrentSection: (index: number) => void;
     isLessonComplete: (lessonId: string) => boolean;
+    isLessonSkipped: (lessonId: string) => boolean;
     getLevelCompletedCount: (level: number) => number;
     getReviewLessons: () => string[];
     reset: () => void;

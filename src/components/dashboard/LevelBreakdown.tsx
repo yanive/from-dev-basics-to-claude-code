@@ -3,6 +3,7 @@ interface LevelInfo {
   title: string;
   emoji: string;
   completed: number;
+  skipped?: number;
   total: number;
 }
 
@@ -41,6 +42,7 @@ export function LevelBreakdown({ levels }: { levels: LevelInfo[] }) {
 
             <p className="text-[10px] font-mono text-text-muted">
               {lv.completed}/{lv.total} lessons
+              {(lv.skipped ?? 0) > 0 && <span className="text-yellow ml-1">({lv.skipped} skipped)</span>}
             </p>
           </div>
         );

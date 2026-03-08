@@ -1,10 +1,11 @@
 import { STORAGE_KEY } from '../../lib/constants';
 import type { ProgressState } from './types';
 
-const PROGRESS_VERSION = 1;
+const PROGRESS_VERSION = 2;
 
 const DEFAULT_STATE: ProgressState = {
   completedLessons: [],
+  skippedLessons: [],
   currentLessonId: '0.1',
   currentSectionIndex: 0,
   levelProgress: {},
@@ -25,8 +26,13 @@ export class ProgressTracker {
       if (raw) {
         const parsed = JSON.parse(raw) as ProgressState;
         if (parsed.version !== PROGRESS_VERSION) {
-          // Schema migration: preserve completed lessons but reset current position
-          return { ...DEFAULT_STATE, completedLessons: parsed.completedLessons ?? [], levelProgress: parsed.levelProgress ?? {} };
+          // Schema migration: preserve completed/skipped lessons but reset current position
+          return {
+            ...DEFAULT_STATE,
+            completedLessons: parsed.completedLessons ?? [],
+            skippedLessons: parsed.skippedLessons ?? [],
+            levelProgress: parsed.levelProgress ?? {},
+          };
         }
         return parsed;
       }
@@ -54,7 +60,14 @@ export class ProgressTracker {
     return this.state.completedLessons.includes(lessonId);
   }
 
+  isLessonSkipped(lessonId: string): boolean {
+    return this.state.skippedLessons.includes(lessonId);
+  }
+
   markLessonComplete(lessonId: string, level: number): void {
+    // Auto-unskip on complete
+    this.state.skippedLessons = this.state.skippedLessons.filter(id => id !== lessonId);
+
     if (!this.state.completedLessons.includes(lessonId)) {
       this.state.completedLessons = [...this.state.completedLessons, lessonId];
       this.state.levelProgress[level] = (this.state.levelProgress[level] || 0) + 1;
@@ -63,6 +76,15 @@ export class ProgressTracker {
     if (!this.state.completionDates[lessonId]) {
       this.state.completionDates[lessonId] = new Date().toISOString();
     }
+    this.save();
+  }
+
+  markLessonSkipped(lessonId: string): void {
+    if (!this.state.skippedLessons.includes(lessonId)) {
+      this.state.skippedLessons = [...this.state.skippedLessons, lessonId];
+    }
+    // Remove from completed if somehow there
+    this.state.completedLessons = this.state.completedLessons.filter(id => id !== lessonId);
     this.save();
   }
 

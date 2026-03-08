@@ -85,7 +85,7 @@ function getCurrentStreak(completionDates?: Record<string, string>): number {
 
 export function HomeScreen() {
   const navigate = useNavigate();
-  const { isLessonComplete, completedLessons, getLevelCompletedCount, getReviewLessons, currentSectionIndex, currentLessonId, completionDates } = useProgress();
+  const { isLessonComplete, isLessonSkipped, completedLessons, skippedLessons, getLevelCompletedCount, getReviewLessons, currentSectionIndex, currentLessonId, completionDates } = useProgress();
   const { user, logout } = useAuth();
   const { plan: onboardingPlan, loading: planLoading, enabled: planEnabled, recommendedLessons } = useOnboardingPlan();
 
@@ -506,15 +506,34 @@ export function HomeScreen() {
                 )}
 
                 {/* Progress bar */}
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="flex-1 h-1 bg-bg-elevated rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-purple rounded-full transition-all duration-500"
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                  <span className="text-[10px] lg:text-xs font-mono font-semibold text-text-muted tabular-nums">{completedCount}/{totalCount}</span>
-                </div>
+                {(() => {
+                  const skippedInLevel = skippedLessons.filter(id => id.startsWith(`${levelMeta.id}.`)).length;
+                  const skippedPct = totalCount > 0 ? Math.round((skippedInLevel / totalCount) * 100) : 0;
+                  return (
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="flex-1 h-1 bg-bg-elevated rounded-full overflow-hidden relative">
+                        <div
+                          className="absolute left-0 top-0 h-full bg-purple rounded-full transition-all duration-500"
+                          style={{ width: `${pct}%` }}
+                        />
+                        {skippedInLevel > 0 && (
+                          <div
+                            className="absolute top-0 h-full rounded-full transition-all duration-500 opacity-40"
+                            style={{
+                              left: `${pct}%`,
+                              width: `${skippedPct}%`,
+                              background: 'repeating-linear-gradient(45deg, var(--color-yellow), var(--color-yellow) 2px, transparent 2px, transparent 4px)',
+                            }}
+                          />
+                        )}
+                      </div>
+                      <span className="text-[10px] lg:text-xs font-mono font-semibold text-text-muted tabular-nums">
+                        {completedCount}/{totalCount}
+                        {skippedInLevel > 0 && <span className="text-yellow ml-0.5">({skippedInLevel} skipped)</span>}
+                      </span>
+                    </div>
+                  );
+                })()}
 
                 {/* Lessons — collapsible */}
                 <div
@@ -526,6 +545,7 @@ export function HomeScreen() {
                     <div className="space-y-0.5 pt-2">
                       {levelData.lessons.map((lesson) => {
                         const isDone = isLessonComplete(lesson.id);
+                        const isSkipped = isLessonSkipped(lesson.id);
                         const isCurrent = lesson.id === currentLessonId;
 
                         return (
@@ -546,6 +566,12 @@ export function HomeScreen() {
                                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                   </svg>
                                 </span>
+                              ) : isSkipped ? (
+                                <span className="w-5 h-5 rounded-full bg-yellow/10 flex items-center justify-center">
+                                  <svg className="w-3 h-3 text-yellow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                                  </svg>
+                                </span>
                               ) : (
                                 <span className="w-5 h-5 rounded-full bg-bg-elevated flex items-center justify-center">
                                   <span className="w-1.5 h-1.5 rounded-full bg-text-muted" />
@@ -556,17 +582,22 @@ export function HomeScreen() {
                             {/* Text */}
                             <div className="min-w-0 flex-1">
                               <p className={`text-[13px] lg:text-[15px] font-medium truncate ${
-                                isDone ? 'text-text-secondary' : 'text-text-primary'
+                                isDone ? 'text-text-secondary' : isSkipped ? 'text-text-muted' : 'text-text-primary'
                               }`}>
                                 {lesson.title}
                               </p>
                               <p className="text-[11px] lg:text-xs text-text-muted truncate">{lesson.subtitle}</p>
-                              {!isDone && recommendedLessons.has(lesson.id) && (
+                              {isSkipped && (
+                                <span className="inline-flex items-center text-[9px] font-mono font-bold text-yellow bg-yellow/10 px-1.5 py-0.5 rounded mt-1">
+                                  Skipped
+                                </span>
+                              )}
+                              {!isDone && !isSkipped && recommendedLessons.has(lesson.id) && (
                                 <span className="inline-flex items-center text-[9px] font-mono font-bold text-purple bg-purple/10 px-1.5 py-0.5 rounded mt-1">
                                   Recommended
                                 </span>
                               )}
-                              {isCurrent && !isDone && currentSectionIndex > 0 && lesson.sections.length > 0 && (
+                              {isCurrent && !isDone && !isSkipped && currentSectionIndex > 0 && lesson.sections.length > 0 && (
                                 <div className="flex items-center gap-2 mt-1.5">
                                   <div className="flex-1 h-1 bg-bg-elevated rounded-full overflow-hidden max-w-[100px]">
                                     <div
@@ -580,7 +611,7 @@ export function HomeScreen() {
                             </div>
 
                             {/* Arrow */}
-                            {!isDone && (
+                            {!isDone && !isSkipped && (
                               <svg className="w-3.5 h-3.5 text-text-muted flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                               </svg>

@@ -6,6 +6,7 @@ import { StreakHeatmap } from './StreakHeatmap';
 
 interface Stats {
   totalCompleted: number;
+  totalSkipped: number;
   totalLessons: number;
   completionPercent: number;
   currentStreak: number;
@@ -15,6 +16,7 @@ interface Stats {
     title: string;
     emoji: string;
     completed: number;
+    skipped: number;
     total: number;
   }[];
   recentActivity: {
@@ -57,7 +59,7 @@ export function DashboardStats() {
       <h1 className="text-xl font-semibold text-text-primary font-mono mb-6">Progress Stats</h1>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatCard
           label="Lessons Completed"
           value={`${stats.totalCompleted}`}
@@ -66,6 +68,10 @@ export function DashboardStats() {
         <StatCard
           label="Completion"
           value={`${stats.completionPercent}%`}
+        />
+        <StatCard
+          label="Skipped"
+          value={`${stats.totalSkipped}`}
         />
         <StatCard
           label="Current Streak"

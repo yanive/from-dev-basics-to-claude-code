@@ -8,6 +8,7 @@ interface ContinueData {
   lessonsPerDay: number;
   estimatedDays: number | null;
   totalCompleted: number;
+  totalSkipped: number;
   totalLessons: number;
   completionPercent: number;
 }
@@ -36,7 +37,7 @@ export function DashboardOverview() {
     return <p className="text-text-muted text-sm">Failed to load dashboard data.</p>;
   }
 
-  const { continueLesson, nextLesson, lessonsPerDay, estimatedDays, totalCompleted, totalLessons, completionPercent } = data;
+  const { continueLesson, nextLesson, lessonsPerDay, estimatedDays, totalCompleted, totalSkipped, totalLessons, completionPercent } = data;
 
   return (
     <div className="max-w-2xl space-y-8">
@@ -108,9 +109,10 @@ export function DashboardOverview() {
       )}
 
       {/* Progress + Pace Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         <StatCard label="Completed" value={`${totalCompleted}/${totalLessons}`} />
         <StatCard label="Progress" value={`${completionPercent}%`} />
+        <StatCard label="Skipped" value={`${totalSkipped}`} />
         <StatCard label="Pace" value={lessonsPerDay > 0 ? `${lessonsPerDay}/day` : '—'} />
         <StatCard label="Est. remaining" value={estimatedDays !== null ? `${estimatedDays}d` : '—'} />
       </div>

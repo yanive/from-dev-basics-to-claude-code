@@ -57,6 +57,13 @@
       "when": 1772955382474,
       "tag": "0007_thick_revanche",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1772989659517,
+      "tag": "0008_complex_harrier",
+      "breakpoints": true
     }
   ]
 }

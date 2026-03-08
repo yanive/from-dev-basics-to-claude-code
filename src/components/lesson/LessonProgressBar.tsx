@@ -10,10 +10,11 @@ interface LessonProgressBarProps {
   canGoBack?: boolean;
   lessonTitle?: string;
   onReportBug?: () => void;
+  onSkip?: () => void;
   sectionType?: string;
 }
 
-export function LessonProgressBar({ current, total, onClose, onBack, canGoBack, lessonTitle, onReportBug, sectionType }: LessonProgressBarProps) {
+export function LessonProgressBar({ current, total, onClose, onBack, canGoBack, lessonTitle, onReportBug, onSkip, sectionType }: LessonProgressBarProps) {
   const { user } = useAuth();
   const pct = total > 0 ? (current / total) * 100 : 0;
 
@@ -64,6 +65,23 @@ export function LessonProgressBar({ current, total, onClose, onBack, canGoBack, 
         <span className="text-[11px] font-mono font-semibold text-text-muted tabular-nums flex-shrink-0">
           <span className="hidden sm:inline">Section </span>{current + 1}<span className="text-text-muted/60"> of </span>{total}
         </span>
+
+        {onSkip && (
+          <div className="relative flex-shrink-0 group">
+            <button
+              onClick={onSkip}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-text-muted hover:text-yellow hover:bg-bg-elevated transition-colors"
+              aria-label="Skip this lesson"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+              </svg>
+            </button>
+            <span className="pointer-events-none absolute top-full right-0 mt-1.5 px-2 py-1 rounded-md bg-bg-card border border-border text-[10px] font-mono text-text-primary whitespace-nowrap opacity-0 translate-y-0.5 group-hover:opacity-100 group-hover:translate-y-0 transition-all">
+              Skip lesson
+            </span>
+          </div>
+        )}
 
         {onReportBug && (
           <div className="relative flex-shrink-0 group">

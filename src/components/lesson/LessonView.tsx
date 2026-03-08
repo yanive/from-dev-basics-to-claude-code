@@ -11,7 +11,7 @@ import { MilestoneScreen } from './MilestoneScreen';
 import { LessonProgressBar } from './LessonProgressBar';
 import { BugReportModal, type BugReportContext } from './BugReportModal';
 import { TerminalProvider, useTerminal } from '../../core/terminal/TerminalContext';
-import { pushCompletion } from '../../services/progressSync';
+import { pushCompletion, pushSkip } from '../../services/progressSync';
 import { useAchievements } from '../../contexts/AchievementContext';
 import { apiFetch } from '../../services/api';
 
@@ -57,13 +57,14 @@ export function LessonView() {
   const navigate = useNavigate();
   const lesson = lessonId ? getLessonById(lessonId) : null;
   const level = lessonId ? getLevelForLesson(lessonId) : null;
-  const { currentSectionIndex, markLessonComplete, setCurrentLesson, setCurrentSection } = useProgress();
+  const { currentSectionIndex, markLessonComplete, markLessonSkipped, isLessonComplete: isProgressComplete, setCurrentLesson, setCurrentSection } = useProgress();
   const engine = useLessonEngine(lesson, currentSectionIndex);
   const { checkForNewAchievements } = useAchievements();
 
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [showBugReport, setShowBugReport] = useState(false);
   const [showSavedToast, setShowSavedToast] = useState(false);
+  const [showSkipConfirm, setShowSkipConfirm] = useState(false);
 
   // Dev-time content validation
   useEffect(() => {
@@ -124,6 +125,16 @@ export function LessonView() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleExitLesson, engine, handleGoBack]);
+
+  const alreadyCompleted = lessonId ? isProgressComplete(lessonId) : false;
+
+  function handleSkipLesson() {
+    if (lessonId) {
+      markLessonSkipped(lessonId);
+      pushSkip(lessonId);
+    }
+    navigate('/');
+  }
 
   if (!lesson || !engine || !level || !lessonId) {
     return (
@@ -246,6 +257,7 @@ export function LessonView() {
         canGoBack={sectionIndex > 0}
         lessonTitle={les.title}
         onReportBug={import.meta.env.VITE_USE_API === 'true' ? () => setShowBugReport(true) : undefined}
+        onSkip={!alreadyCompleted && !isComplete ? () => setShowSkipConfirm(true) : undefined}
         sectionType={currentSection?.type}
       />
 
@@ -257,6 +269,33 @@ export function LessonView() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
             </svg>
             <span className="text-sm font-mono text-text-primary">Progress saved</span>
+          </div>
+        </div>
+      )}
+
+      {/* Skip confirmation dialog */}
+      {showSkipConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" role="dialog" aria-modal="true">
+          <div className="bg-bg-card border border-border rounded-2xl max-w-sm w-[90vw] p-6 animate-pop-in text-center">
+            <span className="text-3xl mb-3 block">&#x23ED;&#xFE0F;</span>
+            <h2 className="text-lg font-bold font-mono text-text-primary mb-2">Skip this lesson?</h2>
+            <p className="text-sm text-text-secondary mb-5">
+              You can always come back and complete it later. Skipped lessons don't count toward achievements.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowSkipConfirm(false)}
+                className="flex-1 px-4 py-3 text-sm font-mono text-text-muted hover:text-text-primary transition-colors rounded-xl border border-border"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSkipLesson}
+                className="flex-1 px-4 py-3 bg-yellow/90 text-black rounded-xl text-sm font-semibold font-mono transition-all active:scale-[0.98]"
+              >
+                Skip
+              </button>
+            </div>
           </div>
         </div>
       )}

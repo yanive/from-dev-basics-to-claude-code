@@ -6,6 +6,8 @@ interface ServerProgress {
   sectionIndex: number;
   completed: boolean;
   completedAt: string | null;
+  skipped: boolean;
+  skippedAt: string | null;
 }
 
 // Pull server progress into localStorage on login
@@ -25,6 +27,9 @@ export async function pullProgress(): Promise<void> {
         const level = parseInt(entry.lessonId.split('.')[0]);
         progressTracker.markLessonComplete(entry.lessonId, level);
       }
+      if (entry.skipped && !state.skippedLessons.includes(entry.lessonId)) {
+        progressTracker.markLessonSkipped(entry.lessonId);
+      }
     }
   } catch {
     // Silent fail — localStorage already has data
@@ -40,6 +45,17 @@ export function pushCompletion(lessonId: string, sectionIndex: number): void {
     body: JSON.stringify({ sectionIndex, completed: true }),
   }).catch(() => {
     // Silent fail — localStorage already has the completion
+  });
+}
+
+// Push a lesson skip to the server (fire-and-forget)
+export function pushSkip(lessonId: string): void {
+  if (!getAccessToken()) return;
+
+  apiFetch(`/api/progress/${lessonId}/skip`, {
+    method: 'POST',
+  }).catch(() => {
+    // Silent fail — localStorage already has the skip
   });
 }
 

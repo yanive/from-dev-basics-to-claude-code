@@ -18,6 +18,8 @@ progressRouter.get('/', async (req, res) => {
     sectionIndex: progress.sectionIndex,
     completed: progress.completed,
     completedAt: progress.completedAt,
+    skipped: progress.skipped,
+    skippedAt: progress.skippedAt,
   }).from(progress)
     .where(eq(progress.userId, req.user!.userId));
 
@@ -106,10 +108,23 @@ progressRouter.get('/stats', async (req, res) => {
     levelId: lessons.levelId,
   }).from(lessons).where(eq(lessons.isPublished, true));
 
+  // Skipped lessons
+  const skippedRows = await db.select({
+    lessonId: progress.lessonId,
+  }).from(progress)
+    .where(and(eq(progress.userId, userId), eq(progress.skipped, true)));
+
+  const totalSkipped = skippedRows.length;
+  const skippedLessonIds = new Set(skippedRows.map(r => r.lessonId));
+
   const completedPerLevel = new Map<number, number>();
+  const skippedPerLevel = new Map<number, number>();
   for (const l of allLessons) {
     if (completedLessonIds.has(l.id)) {
       completedPerLevel.set(l.levelId, (completedPerLevel.get(l.levelId) || 0) + 1);
+    }
+    if (skippedLessonIds.has(l.id)) {
+      skippedPerLevel.set(l.levelId, (skippedPerLevel.get(l.levelId) || 0) + 1);
     }
   }
 
@@ -118,6 +133,7 @@ progressRouter.get('/stats', async (req, res) => {
     title: lv.title,
     emoji: lv.emoji,
     completed: completedPerLevel.get(lv.levelId) || 0,
+    skipped: skippedPerLevel.get(lv.levelId) || 0,
     total: countMap.get(lv.levelId) || 0,
   }));
 
@@ -142,6 +158,7 @@ progressRouter.get('/stats', async (req, res) => {
 
   res.json({
     totalCompleted,
+    totalSkipped,
     totalLessons,
     completionPercent,
     currentStreak,
@@ -288,6 +305,7 @@ progressRouter.get('/continue', async (req, res) => {
     sectionIndex: progress.sectionIndex,
     completed: progress.completed,
     completedAt: progress.completedAt,
+    skipped: progress.skipped,
   }).from(progress)
     .where(eq(progress.userId, userId));
 
@@ -334,11 +352,13 @@ progressRouter.get('/continue', async (req, res) => {
     }
   }
 
-  // Next recommended lesson (first uncompleted, not in progress)
+  // Next recommended lesson (first uncompleted, not in progress, not skipped)
   let nextLesson: { lessonId: string; title: string; levelTitle: string } | null = null;
   const inProgressIds = new Set(inProgressRows.map(r => r.lessonId));
+  const skippedIds = new Set(allProgress.filter(r => r.skipped).map(r => r.lessonId));
+  const totalSkipped = skippedIds.size;
   for (const l of allLessons) {
-    if (!completedIds.has(l.id) && !inProgressIds.has(l.id)) {
+    if (!completedIds.has(l.id) && !inProgressIds.has(l.id) && !skippedIds.has(l.id)) {
       const lv = levelMap.get(l.levelId);
       nextLesson = {
         lessonId: l.id,
@@ -370,6 +390,7 @@ progressRouter.get('/continue', async (req, res) => {
     lessonsPerDay,
     estimatedDays,
     totalCompleted,
+    totalSkipped,
     totalLessons,
     completionPercent,
   });
@@ -409,6 +430,7 @@ progressRouter.put('/:lessonId', async (req, res) => {
         sectionIndex,
         completed,
         completedAt: completed ? new Date() : null,
+        ...(completed ? { skipped: false, skippedAt: null } : {}),
       })
       .where(eq(progress.id, existing.id));
   } else {
@@ -422,4 +444,45 @@ progressRouter.put('/:lessonId', async (req, res) => {
   }
 
   res.json({ lessonId, sectionIndex, completed });
+});
+
+// POST /api/progress/:lessonId/skip — mark lesson as skipped
+progressRouter.post('/:lessonId/skip', async (req, res) => {
+  const { lessonId } = req.params;
+  const userId = req.user!.userId;
+
+  // When impersonating, return success without persisting
+  if (req.user!.impersonatedBy) {
+    res.json({ lessonId, skipped: true });
+    return;
+  }
+
+  const [existing] = await db.select({ id: progress.id, completed: progress.completed })
+    .from(progress)
+    .where(and(eq(progress.userId, userId), eq(progress.lessonId, lessonId)))
+    .limit(1);
+
+  // If already completed, don't allow skipping
+  if (existing?.completed) {
+    res.json({ lessonId, skipped: false, completed: true });
+    return;
+  }
+
+  if (existing) {
+    await db.update(progress)
+      .set({ skipped: true, skippedAt: new Date(), completed: false, completedAt: null })
+      .where(eq(progress.id, existing.id));
+  } else {
+    await db.insert(progress).values({
+      userId,
+      lessonId,
+      sectionIndex: 0,
+      completed: false,
+      completedAt: null,
+      skipped: true,
+      skippedAt: new Date(),
+    });
+  }
+
+  res.json({ lessonId, skipped: true });
 });

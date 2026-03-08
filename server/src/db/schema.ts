@@ -73,6 +73,8 @@ export const progress = pgTable('progress', {
   sectionIndex: integer('section_index').notNull().default(0),
   completed: boolean('completed').notNull().default(false),
   completedAt: timestamp('completed_at', { withTimezone: true }),
+  skipped: boolean('skipped').notNull().default(false),
+  skippedAt: timestamp('skipped_at', { withTimezone: true }),
 }, (table) => ({
   userLessonUnique: unique('progress_user_lesson_unique').on(table.userId, table.lessonId),
 }));
