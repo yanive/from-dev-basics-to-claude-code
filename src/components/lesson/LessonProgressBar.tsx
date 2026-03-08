@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { SECTION_TYPE_LABELS } from './sectionLabels';
@@ -17,6 +18,22 @@ interface LessonProgressBarProps {
 export function LessonProgressBar({ current, total, onClose, onBack, canGoBack, lessonTitle, onReportBug, onSkip, sectionType }: LessonProgressBarProps) {
   const { user } = useAuth();
   const pct = total > 0 ? (current / total) * 100 : 0;
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const hasMenuItems = !!(onSkip || onReportBug || user);
+
+  // Close mobile menu on outside click
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMobileMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [mobileMenuOpen]);
 
   return (
     <div className="flex-shrink-0 px-4 py-3 md:px-8 lg:px-12 xl:px-16">
@@ -66,8 +83,9 @@ export function LessonProgressBar({ current, total, onClose, onBack, canGoBack, 
           <span className="hidden sm:inline">Section </span>{current + 1}<span className="text-text-muted/60"> of </span>{total}
         </span>
 
+        {/* Desktop: individual buttons (hidden on mobile) */}
         {onSkip && (
-          <div className="relative flex-shrink-0 group">
+          <div className="relative flex-shrink-0 group hidden md:block">
             <button
               onClick={onSkip}
               className="w-8 h-8 flex items-center justify-center rounded-lg text-text-muted hover:text-yellow hover:bg-bg-elevated transition-colors"
@@ -84,7 +102,7 @@ export function LessonProgressBar({ current, total, onClose, onBack, canGoBack, 
         )}
 
         {onReportBug && (
-          <div className="relative flex-shrink-0 group">
+          <div className="relative flex-shrink-0 group hidden md:block">
             <button
               onClick={onReportBug}
               className="w-8 h-8 flex items-center justify-center rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-elevated transition-colors"
@@ -102,7 +120,7 @@ export function LessonProgressBar({ current, total, onClose, onBack, canGoBack, 
         )}
 
         {user && (
-          <div className="relative flex-shrink-0 group">
+          <div className="relative flex-shrink-0 group hidden md:block">
             <Link
               to="/dashboard"
               className="w-8 h-8 flex items-center justify-center rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-elevated transition-colors"
@@ -115,6 +133,60 @@ export function LessonProgressBar({ current, total, onClose, onBack, canGoBack, 
             <span className="pointer-events-none absolute top-full right-0 mt-1.5 px-2 py-1 rounded-md bg-bg-card border border-border text-[10px] font-mono text-text-primary whitespace-nowrap opacity-0 translate-y-0.5 group-hover:opacity-100 group-hover:translate-y-0 transition-all">
               Dashboard
             </span>
+          </div>
+        )}
+
+        {/* Mobile: overflow menu (visible only below md) */}
+        {hasMenuItems && (
+          <div className="relative flex-shrink-0 md:hidden" ref={menuRef}>
+            <button
+              onClick={() => setMobileMenuOpen(v => !v)}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-elevated transition-colors"
+              aria-label="More options"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+              </svg>
+            </button>
+
+            {mobileMenuOpen && (
+              <div className="absolute right-0 top-10 w-44 bg-bg-card border border-border rounded-xl shadow-lg py-1 z-50 animate-fade-in">
+                {onSkip && (
+                  <button
+                    onClick={() => { setMobileMenuOpen(false); onSkip(); }}
+                    className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm font-mono text-yellow hover:bg-bg-elevated transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                    </svg>
+                    Skip lesson
+                  </button>
+                )}
+                {onReportBug && (
+                  <button
+                    onClick={() => { setMobileMenuOpen(false); onReportBug(); }}
+                    className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm font-mono text-text-muted hover:text-text-primary hover:bg-bg-elevated transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M5.07 19H19a2 2 0 001.75-2.97l-7-12a2 2 0 00-3.5 0l-7 12A2 2 0 005.07 19z" />
+                    </svg>
+                    Report a bug
+                  </button>
+                )}
+                {user && (
+                  <Link
+                    to="/dashboard"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm font-mono text-text-muted hover:text-text-primary hover:bg-bg-elevated transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                    </svg>
+                    Dashboard
+                  </Link>
+                )}
+              </div>
+            )}
           </div>
         )}
 
