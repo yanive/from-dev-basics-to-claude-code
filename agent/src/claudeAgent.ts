@@ -15,7 +15,7 @@ export async function investigate(report: ParsedBugReport): Promise<Investigatio
     prompt,
     options: {
       cwd: config.PROJECT_ROOT,
-      allowedTools: ['Read', 'Glob', 'Grep'],
+      allowedTools: ['Read', 'Glob', 'Grep', 'Bash(git log *)', 'Bash(git show *)'],
       model: 'sonnet',
     },
   })) {
@@ -111,10 +111,11 @@ function buildInvestigationPrompt(report: ParsedBugReport): string {
     ``,
     `## Your Task`,
     ``,
-    `1. Read the lesson JSON file at \`src/data/lessons/\` — find the file matching lesson ID "${report.lessonId}"`,
-    `2. Read the relevant component code based on the section type and validation logic`,
-    `3. Determine if this is a valid bug or a user misunderstanding`,
-    `4. Identify which files would need to change if it is a bug`,
+    `1. First, check recent git history: run \`git log --oneline -20\` and look for commits that may have already fixed this issue. If a recent commit clearly addresses the reported problem, mark it as not a bug (already fixed).`,
+    `2. Read the lesson JSON file at \`src/data/lessons/\` — find the file matching lesson ID "${report.lessonId}"`,
+    `3. Read the relevant component code based on the section type and validation logic`,
+    `4. Determine if this is a valid bug, a user misunderstanding, or already fixed in a recent commit`,
+    `5. Identify which files would need to change if it is a bug`,
     ``,
     `## Response Format`,
     ``,
@@ -131,6 +132,7 @@ function buildInvestigationPrompt(report: ParsedBugReport): string {
     `}`,
     `\`\`\``,
     ``,
+    `Set isValidBug=false if the bug was already fixed in a recent commit — explain which commit fixed it.`,
     `Set canAutoFix=true only if the fix is straightforward (e.g. typo in lesson JSON, wrong validation value, simple logic error).`,
     `Set canAutoFix=false for complex fixes, architectural issues, or things you're unsure about.`,
   );
