@@ -18,8 +18,10 @@ export function LessonStep({ children, cta, secondaryCta }: LessonStepProps) {
   const sectionType = useSectionType();
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      const tag = (e.target as HTMLElement)?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.isContentEditable) return;
+      const target = e.target as HTMLElement;
+      const tag = target?.tagName;
+      const isDisabledInput = (tag === 'INPUT' || tag === 'TEXTAREA') && (target as HTMLInputElement).disabled;
+      if ((tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable) && !isDisabledInput) return;
 
       if ((e.key === 'Enter' || e.key === 'n' || e.key === 'ArrowRight') && cta && !cta.disabled) {
         e.preventDefault();
