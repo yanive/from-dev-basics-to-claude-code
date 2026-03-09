@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
 import { LEVELS, getLevelDisplayNumber } from '../../lib/constants';
 
 interface Student {
@@ -24,6 +25,7 @@ const totalLessons = LEVELS.reduce((sum, l) => sum + l.lessonCount, 0);
 export function AdminStudentDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { startImpersonation } = useAuth();
   const [student, setStudent] = useState<Student | null>(null);
   const [progress, setProgress] = useState<ProgressRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -95,6 +97,17 @@ export function AdminStudentDetail() {
           </div>
           <p className="text-sm text-text-muted">{student.displayName}</p>
         </div>
+        {student.role === 'student' && (
+          <button
+            onClick={async () => {
+              await startImpersonation(student.id);
+              navigate('/');
+            }}
+            className="text-xs font-mono px-3 py-1.5 rounded-lg bg-amber-600/20 text-amber-500 hover:bg-amber-600/30 transition-colors"
+          >
+            Impersonate
+          </button>
+        )}
       </div>
 
       {/* Summary row */}
