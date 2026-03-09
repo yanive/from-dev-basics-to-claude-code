@@ -15,7 +15,7 @@ import { pushCompletion, pushSkip } from '../../services/progressSync';
 import { useAchievements } from '../../contexts/AchievementContext';
 import { apiFetch } from '../../services/api';
 import { CheatSheet } from './CheatSheet';
-import { COMMAND_DESCRIPTIONS } from '../interactive/terminal/CommandReferenceBar';
+import { COMMAND_DESCRIPTIONS } from '../../data/commandDescriptions';
 
 /** Renders BugReportModal inside TerminalProvider scope so it can access terminal context */
 function TerminalBugReport({
