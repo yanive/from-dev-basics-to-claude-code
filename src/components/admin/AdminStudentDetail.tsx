@@ -114,7 +114,7 @@ export function AdminStudentDetail() {
       <h2 className="text-sm font-semibold text-text-primary font-mono mb-4">Progress by Level</h2>
       <div className="space-y-4 mb-8">
         {LEVELS.map(level => {
-          const levelLessons = Array.from({ length: level.lessonCount }, (_, i) => `${level.id}.${i + 1}`);
+          const levelLessons = Array.from({ length: level.lessonCount }, (_, i) => `${level.lessonPrefix}.${i + 1}`);
           const completedInLevel = levelLessons.filter(lid => completedLessonIds.has(lid)).length;
 
           return (
