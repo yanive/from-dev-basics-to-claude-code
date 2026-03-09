@@ -1,12 +1,13 @@
 import { config } from './config.js';
 import { logger } from './logger.js';
 import { getUnprocessedIssues, addComment, addLabels, closeIssue, createDraftPR } from './github.js';
+import type { GitHubIssue } from './github.js';
 import { parseIssueBody } from './issueParser.js';
 import { investigate, fix } from './claudeAgent.js';
 import { reportResults } from './reportResults.js';
 import type { TriageResult } from './types.js';
 
-async function triageIssue(issue: { number: number; title: string; body: string | null; html_url: string; labels: string[]; created_at: string }): Promise<TriageResult> {
+async function triageIssue(issue: GitHubIssue): Promise<TriageResult> {
   const report = parseIssueBody(issue);
   logger.info(`Processing issue #${report.issueNumber}: ${report.title}`);
 

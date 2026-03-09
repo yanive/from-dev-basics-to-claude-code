@@ -8,8 +8,9 @@
 
   <key>ProgramArguments</key>
   <array>
-    <string>/usr/local/bin/node</string>
-    <string>/Users/itays/dev/training/from-dev-basics-to-claude-code/agent/dist/index.js</string>
+    <string>/bin/zsh</string>
+    <string>-c</string>
+    <string>exec node /Users/itays/dev/training/from-dev-basics-to-claude-code/agent/dist/index.js</string>
   </array>
 
   <key>WorkingDirectory</key>

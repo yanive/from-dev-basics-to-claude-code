@@ -34,9 +34,9 @@ const detectedToken = detectGitHubToken();
 
 const envSchema = z.object({
   // All three auto-detected from local machine — no manual config needed
-  GITHUB_PAT: z.string().default(detectedToken ?? ''),
-  GITHUB_OWNER: z.string().default(detected?.owner ?? ''),
-  GITHUB_REPO: z.string().default(detected?.repo ?? ''),
+  GITHUB_PAT: z.string().min(1, 'No GitHub token found. Run `gh auth login` or set GITHUB_PAT in agent/.env').default(detectedToken ?? ''),
+  GITHUB_OWNER: z.string().min(1, 'Could not detect GITHUB_OWNER from git remote. Set it in agent/.env').default(detected?.owner ?? ''),
+  GITHUB_REPO: z.string().min(1, 'Could not detect GITHUB_REPO from git remote. Set it in agent/.env').default(detected?.repo ?? ''),
   // API URL for POSTing triage results (server handles emails)
   API_URL: z.string().default('https://terminal-trainer-api.onrender.com'),
   PROJECT_ROOT: z.string().default(defaultProjectRoot),
@@ -49,14 +49,6 @@ function loadConfig() {
   if (!result.success) {
     const errors = result.error.issues.map(i => `  ${i.path.join('.')}: ${i.message}`).join('\n');
     console.error(`Configuration error:\n${errors}`);
-    process.exit(1);
-  }
-  if (!result.data.GITHUB_PAT) {
-    console.error('No GitHub token found. Run `gh auth login` or set GITHUB_PAT in agent/.env');
-    process.exit(1);
-  }
-  if (!result.data.GITHUB_OWNER || !result.data.GITHUB_REPO) {
-    console.error('Could not detect GITHUB_OWNER/GITHUB_REPO from git remote. Set them in agent/.env');
     process.exit(1);
   }
   return result.data;

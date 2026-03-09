@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { desc, sql } from 'drizzle-orm';
+import { desc, sql, inArray } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { triageRuns, triageIssues } from '../db/schema.js';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';
@@ -77,23 +77,25 @@ triageRouter.post('/runs', requireGitHubPAT as any, asyncHandler(async (req, res
     dryRun: body.dryRun,
   }).returning({ id: triageRuns.id });
 
-  // Insert issues
-  for (const issue of body.issues) {
-    await db.insert(triageIssues).values({
-      runId: run.id,
-      issueNumber: issue.issueNumber,
-      issueUrl: issue.issueUrl,
-      title: issue.title,
-      decision: issue.decision,
-      confidence: issue.confidence,
-      explanation: issue.explanation,
-      reporterEmail: issue.reporterEmail,
-      reporterName: issue.reporterName,
-      prNumber: issue.prNumber,
-      prUrl: issue.prUrl,
-      changedFiles: issue.changedFiles,
-      costUsd: issue.costUsd.toFixed(4),
-    });
+  // Insert issues (batch)
+  if (body.issues.length > 0) {
+    await db.insert(triageIssues).values(
+      body.issues.map(issue => ({
+        runId: run.id,
+        issueNumber: issue.issueNumber,
+        issueUrl: issue.issueUrl,
+        title: issue.title,
+        decision: issue.decision,
+        confidence: issue.confidence,
+        explanation: issue.explanation,
+        reporterEmail: issue.reporterEmail,
+        reporterName: issue.reporterName,
+        prNumber: issue.prNumber,
+        prUrl: issue.prUrl,
+        changedFiles: issue.changedFiles,
+        costUsd: issue.costUsd.toFixed(4),
+      }))
+    );
   }
 
   // Send reporter emails (best-effort, never block response)
@@ -176,12 +178,25 @@ triageRouter.get('/runs', requireAuth, requireAdmin, asyncHandler(async (req, re
     .limit(limit)
     .offset(offset);
 
-  // For each run, fetch issues
-  const result = await Promise.all(runs.map(async (run) => {
-    const issues = await db.select().from(triageIssues)
-      .where(sql`${triageIssues.runId} = ${run.id}`)
-      .orderBy(triageIssues.issueNumber);
-    return { ...run, issues };
+  // Fetch all issues for these runs in a single query
+  const runIds = runs.map(r => r.id);
+  const allIssues = runIds.length > 0
+    ? await db.select().from(triageIssues)
+        .where(inArray(triageIssues.runId, runIds))
+        .orderBy(triageIssues.issueNumber)
+    : [];
+
+  // Group issues by runId
+  const issuesByRun = new Map<string, typeof allIssues>();
+  for (const issue of allIssues) {
+    const list = issuesByRun.get(issue.runId!) || [];
+    list.push(issue);
+    issuesByRun.set(issue.runId!, list);
+  }
+
+  const result = runs.map(run => ({
+    ...run,
+    issues: issuesByRun.get(run.id) || [],
   }));
 
   res.json(result);
