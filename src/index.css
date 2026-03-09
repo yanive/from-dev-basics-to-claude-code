@@ -253,6 +253,9 @@ select:focus-visible {
   --color-bg-secondary: #EFEDEA;
   --color-bg-card: #FFFFFF;
   --color-bg-elevated: #E8E6E3;
+  --color-text-primary: #111113;
+  --color-text-secondary: #4A4A52;
+  --color-text-muted: #8A8A96;
   --color-border: rgba(0, 0, 0, 0.08);
   --color-border-strong: rgba(0, 0, 0, 0.14);
   --color-purple-soft: rgba(255, 107, 53, 0.08);
