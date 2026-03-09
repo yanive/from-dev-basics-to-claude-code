@@ -29,13 +29,14 @@ export interface InvestigationResult {
   affectedFiles: string[];
   suggestedFix: string | null;
   canAutoFix: boolean;
+  costUsd: number;
 }
 
 export interface TriageResult {
   issueNumber: number;
   issueUrl: string;
   title: string;
-  decision: 'auto-fixed' | 'needs-review' | 'not-a-bug';
+  decision: 'auto-fixed' | 'needs-review' | 'not-a-bug' | 'error';
   confidence: 'high' | 'medium' | 'low';
   explanation: string;
   reporterEmail: string | null;
@@ -53,4 +54,5 @@ export interface FixResult {
   prTitle: string;
   prBody: string;
   changedFiles: string[];
+  costUsd: number;
 }

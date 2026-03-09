@@ -46,6 +46,8 @@ app.use('/api/levels', levelsRouter);
 app.use('/api/lessons', lessonsRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/progress', progressRouter);
+// Triage router MUST come before adminRouter — it uses PAT auth, not JWT.
+// If adminRouter is first, its JWT middleware intercepts triage POST requests.
 app.use('/api/admin/triage', triageRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/bug-reports', bugReportsRouter);

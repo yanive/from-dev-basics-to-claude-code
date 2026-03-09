@@ -65,12 +65,15 @@ export async function investigate(report: ParsedBugReport): Promise<Investigatio
       affectedFiles: [],
       suggestedFix: null,
       canAutoFix: false,
+      costUsd,
     };
   }
 
   logger.info(`Investigation complete (cost: $${costUsd.toFixed(4)})`);
 
-  return parseInvestigationResult(resultText);
+  const result = parseInvestigationResult(resultText);
+  result.costUsd = costUsd;
+  return result;
 }
 
 export function buildBranchName(issueNumber: number, title: string): string {
@@ -98,8 +101,9 @@ export async function fix(
       cwd: config.PROJECT_ROOT,
       stdio: 'pipe',
     });
-  } catch (err) {
-    logger.error(`Failed to create worktree for issue #${report.issueNumber}: ${err}`);
+  } catch (err: any) {
+    const stderr = err?.stderr?.toString() || '';
+    logger.error(`Failed to create worktree for issue #${report.issueNumber}: ${stderr || err}`);
     return null;
   }
 
@@ -140,7 +144,9 @@ export async function fix(
     const fixResult = parseFixResult(resultText, branchName);
     if (!fixResult) {
       logger.warn(`Fix for issue #${report.issueNumber} produced unparseable output. Branch "${branchName}" may have been pushed — check remote.`);
+      return null;
     }
+    fixResult.costUsd = costUsd;
     return fixResult;
   } finally {
     // Always clean up the worktree
@@ -149,9 +155,12 @@ export async function fix(
         cwd: config.PROJECT_ROOT,
         stdio: 'pipe',
       });
-    } catch {
-      logger.warn(`Failed to remove worktree at ${worktreeDir} — clean up manually`);
+    } catch (err: any) {
+      const stderr = err?.stderr?.toString() || '';
+      logger.warn(`Failed to remove worktree at ${worktreeDir} — clean up manually: ${stderr || err}`);
     }
+    // Small delay to let git fully release the worktree lock on macOS
+    await new Promise(resolve => setTimeout(resolve, 500));
     // Remove the local branch (it's already pushed to remote if fix succeeded)
     try {
       execSync(`git branch -D "${branchName}"`, {
@@ -283,6 +292,7 @@ export function parseInvestigationResult(text: string): InvestigationResult {
       affectedFiles: [],
       suggestedFix: null,
       canAutoFix: false,
+      costUsd: 0,
     };
   }
 
@@ -298,10 +308,11 @@ export function parseInvestigationResult(text: string): InvestigationResult {
       affectedFiles: [],
       suggestedFix: null,
       canAutoFix: false,
+      costUsd: 0,
     };
   }
 
-  return parsed.data;
+  return { ...parsed.data, costUsd: 0 };
 }
 
 export function parseFixResult(text: string, branchName: string): FixResult | null {
@@ -318,7 +329,7 @@ export function parseFixResult(text: string, branchName: string): FixResult | nu
     return null;
   }
 
-  return parsed.data;
+  return { ...parsed.data, costUsd: 0 };
 }
 
 export function extractJsonBlock(text: string): Record<string, unknown> | null {

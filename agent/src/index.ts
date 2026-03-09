@@ -15,6 +15,8 @@ async function triageIssue(issue: GitHubIssue): Promise<TriageResult> {
   const investigation = await investigate(report);
   logger.info(`Issue #${report.issueNumber}: isValidBug=${investigation.isValidBug}, confidence=${investigation.confidence}, canAutoFix=${investigation.canAutoFix}`);
 
+  let totalCost = investigation.costUsd;
+
   const result: TriageResult = {
     issueNumber: report.issueNumber,
     issueUrl: report.issueUrl,
@@ -64,6 +66,7 @@ async function triageIssue(issue: GitHubIssue): Promise<TriageResult> {
     const fixResult = await fix(report, investigation);
 
     if (fixResult) {
+      totalCost += fixResult.costUsd;
       const pr = await createDraftPR(fixResult.branchName, fixResult.prTitle, [
         fixResult.prBody,
         ``,
@@ -106,6 +109,7 @@ async function triageIssue(issue: GitHubIssue): Promise<TriageResult> {
   // Always mark as processed
   await addLabels(report.issueNumber, ['triage-processed']);
 
+  result.costUsd = totalCost;
   return result;
 }
 
@@ -131,6 +135,21 @@ async function main(): Promise<void> {
       logger.info(`Issue #${issue.number}: ${result.decision}`);
     } catch (err) {
       logger.error(`Failed to process issue #${issue.number}: ${err}`);
+      results.push({
+        issueNumber: issue.number,
+        issueUrl: issue.html_url,
+        title: issue.title,
+        decision: 'error',
+        confidence: 'low',
+        explanation: `Processing failed: ${err}`,
+        reporterEmail: null,
+        reporterName: null,
+        branchName: null,
+        prUrl: null,
+        prNumber: null,
+        changedFiles: [],
+        costUsd: 0,
+      });
       try {
         await addLabels(issue.number, ['triage-error']);
       } catch {

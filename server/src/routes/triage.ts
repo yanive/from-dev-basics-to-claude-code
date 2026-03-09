@@ -26,7 +26,7 @@ const issueSchema = z.object({
   issueNumber: z.number(),
   issueUrl: z.string(),
   title: z.string(),
-  decision: z.enum(['auto-fixed', 'needs-review', 'not-a-bug']),
+  decision: z.enum(['auto-fixed', 'needs-review', 'not-a-bug', 'error']),
   confidence: z.enum(['high', 'medium', 'low']),
   explanation: z.string(),
   reporterEmail: z.string().nullable(),
@@ -62,6 +62,7 @@ triageRouter.post('/runs', requireGitHubPAT as any, asyncHandler(async (req, res
   const autoFixed = body.issues.filter(i => i.decision === 'auto-fixed').length;
   const needsReview = body.issues.filter(i => i.decision === 'needs-review').length;
   const notABug = body.issues.filter(i => i.decision === 'not-a-bug').length;
+  const errors = body.issues.filter(i => i.decision === 'error').length;
   const totalCost = body.issues.reduce((sum, i) => sum + i.costUsd, 0);
 
   // Insert run
@@ -72,7 +73,7 @@ triageRouter.post('/runs', requireGitHubPAT as any, asyncHandler(async (req, res
     autoFixed,
     needsReview,
     notABug,
-    errors: 0,
+    errors,
     totalCostUsd: totalCost.toFixed(4),
     dryRun: body.dryRun,
   }).returning({ id: triageRuns.id });
@@ -102,6 +103,7 @@ triageRouter.post('/runs', requireGitHubPAT as any, asyncHandler(async (req, res
   if (!body.dryRun) {
     for (const issue of body.issues) {
       if (!issue.reporterEmail || !issue.reporterName) continue;
+      if (issue.decision === 'error') continue; // no email for processing errors
       try {
         let html: string;
         let subject: string;
@@ -144,7 +146,7 @@ triageRouter.post('/runs', requireGitHubPAT as any, asyncHandler(async (req, res
           autoFixed,
           needsReview,
           notABug,
-          errors: 0,
+          errors,
           totalCost: totalCost.toFixed(2),
         });
         await recordAdminEvent('triage_run', {

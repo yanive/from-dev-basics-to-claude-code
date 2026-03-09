@@ -29,12 +29,14 @@ export async function reportResults(
 
     if (!res.ok) {
       const body = await res.text();
-      logger.error(`Failed to POST results (${res.status}): ${body}`);
+      logger.error(`!!! Failed to POST results (${res.status}): ${body}`);
+      logger.error(`!!! ${results.length} issues were processed but NOT recorded on server. Emails will NOT be sent.`);
       return;
     }
 
     logger.info(`Results posted to server (${results.length} issues)`);
   } catch (err) {
-    logger.error(`Failed to POST results to server: ${err}`);
+    logger.error(`!!! Failed to POST results to server: ${err}`);
+    logger.error(`!!! ${results.length} issues were processed but NOT recorded on server. Emails will NOT be sent.`);
   }
 }
